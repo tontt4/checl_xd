@@ -49,9 +49,13 @@ class LotWizard:
         except Exception as e:
             logger.warning(f"{LOGGER_PREFIX} Ошибка сохранения состояний мастера: {e}")
     
-    def get_user_key(self, message) -> str:
+    def get_user_key(self, obj) -> str:
         """Генерирует ключ пользователя"""
-        return f"{message.chat.id}_{message.from_user.id}"
+        # Обрабатываем как CallbackQuery, так и Message
+        if hasattr(obj, 'message'):  # CallbackQuery
+            return f"{obj.message.chat.id}_{obj.from_user.id}"
+        else:  # Message
+            return f"{obj.chat.id}_{obj.from_user.id}"
     
     def start_wizard(self, call: telebot.types.CallbackQuery, bot) -> None:
         """Запускает мастер создания лота"""
