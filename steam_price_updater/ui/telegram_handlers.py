@@ -32,23 +32,42 @@ class TelegramHandlers:
     
     def setup(self, cardinal) -> None:
         """Настройка обработчиков"""
-        if not cardinal.telegram:
-            logger.warning(f"{LOGGER_PREFIX} Telegram бот не включен в FunPayCardinal")
-            return
-        
-        self.tg = cardinal.telegram
-        self.bot = self.tg.bot
-        
-        logger.info(f"{LOGGER_PREFIX} Настройка Telegram обработчиков...")
-        
-        # Регистрируем обработчики
-        self._register_handlers()
-        
-        logger.info(f"{LOGGER_PREFIX} Telegram обработчики настроены")
+        try:
+            if not cardinal:
+                logger.error(f"{LOGGER_PREFIX} Cardinal не передан в setup")
+                return
+                
+            if not hasattr(cardinal, 'telegram') or not cardinal.telegram:
+                logger.warning(f"{LOGGER_PREFIX} Telegram бот не включен в FunPayCardinal")
+                return
+            
+            self.tg = cardinal.telegram
+            if not self.tg:
+                logger.error(f"{LOGGER_PREFIX} Telegram объект не доступен")
+                return
+                
+            self.bot = self.tg.bot
+            if not self.bot:
+                logger.error(f"{LOGGER_PREFIX} Bot объект не доступен")
+                return
+            
+            logger.info(f"{LOGGER_PREFIX} Настройка Telegram обработчиков...")
+            
+            # Регистрируем обработчики
+            self._register_handlers()
+            
+            logger.info(f"{LOGGER_PREFIX} Telegram обработчики настроены успешно")
+            
+        except Exception as e:
+            logger.error(f"{LOGGER_PREFIX} Критическая ошибка в setup: {e}", exc_info=True)
     
     def _register_handlers(self) -> None:
         """Регистрирует все обработчики"""
-        from tg_bot import CBT
+        try:
+            from tg_bot import CBT
+        except ImportError:
+            logger.error(f"{LOGGER_PREFIX} Не удалось импортировать CBT из tg_bot")
+            return
         
         # Основные обработчики
         self.tg.cbq_handler(self.open_settings, lambda c: c.data and c.data.startswith(f"{CBT.PLUGIN_SETTINGS}:{UUID}"))
@@ -98,7 +117,7 @@ class TelegramHandlers:
             
             keyboard.row(
                 B("❓ Помощь", url="https://t.me/humblegodq"),
-                B("◀ Назад", callback_data=f"EDIT_PLUGIN:{UUID}:0")
+                B("◀ Назад", callback_data=f"{CBT.EDIT_PLUGIN}")
             )
             
             # Статистика
@@ -247,7 +266,27 @@ class TelegramHandlers:
     
     def start_lot_wizard(self, call: telebot.types.CallbackQuery) -> None:
         """Запускает мастер создания лота"""
-        lot_wizard.start_wizard(call, self.bot)
+        try:
+            logger.info(f"{LOGGER_PREFIX} Получен запрос на запуск мастера от пользователя {call.from_user.id if call.from_user else 'unknown'}")
+            
+            if not self.bot:
+                logger.error(f"{LOGGER_PREFIX} Bot не инициализирован")
+                return
+                
+            if not call.from_user:
+                logger.error(f"{LOGGER_PREFIX} Отсутствует from_user в callback")
+                self.bot.answer_callback_query(call.id, "❌ Ошибка пользователя")
+                return
+            
+            logger.info(f"{LOGGER_PREFIX} Запуск мастера для пользователя {call.from_user.id}")
+            lot_wizard.start_wizard(call, self.bot)
+            
+        except Exception as e:
+            logger.error(f"{LOGGER_PREFIX} Критическая ошибка в start_lot_wizard: {e}", exc_info=True)
+            try:
+                self.bot.answer_callback_query(call.id, "❌ Ошибка запуска мастера")
+            except Exception as bot_error:
+                logger.error(f"{LOGGER_PREFIX} Ошибка отправки ответа боту: {bot_error}")
     
     def edit_lot_menu(self, call: telebot.types.CallbackQuery) -> None:
         """Показывает меню редактирования лота"""

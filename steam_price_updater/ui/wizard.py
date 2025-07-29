@@ -51,11 +51,20 @@ class LotWizard:
     
     def get_user_key(self, message) -> str:
         """Генерирует ключ пользователя"""
-        return f"{message.chat.id}_{message.from_user.id}"
+        if hasattr(message, 'from_user') and message.from_user:
+            return f"{message.chat.id}_{message.from_user.id}"
+        else:
+            # Fallback для случаев когда from_user недоступен
+            return f"{message.chat.id}_0"
     
     def start_wizard(self, call: telebot.types.CallbackQuery, bot) -> None:
         """Запускает мастер создания лота"""
         try:
+            if not call.from_user:
+                bot.answer_callback_query(call.id, "❌ Ошибка пользователя")
+                logger.error(f"{LOGGER_PREFIX} Отсутствует from_user в callback")
+                return
+                
             user_key = self.get_user_key(call)
             
             # Сохраняем состояние
@@ -82,7 +91,10 @@ class LotWizard:
             
         except Exception as e:
             logger.error(f"{LOGGER_PREFIX} Ошибка запуска мастера: {e}")
-            bot.answer_callback_query(call.id, "❌ Ошибка")
+            try:
+                bot.answer_callback_query(call.id, "❌ Ошибка запуска мастера")
+            except:
+                pass
     
     def handle_message(self, message: telebot.types.Message, bot) -> bool:
         """Обрабатывает сообщения мастера"""
