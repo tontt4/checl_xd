@@ -72,7 +72,12 @@ class TelegramHandlers:
         self.tg.cbq_handler(self.refresh_currency_rates, lambda c: c.data and c.data.startswith(CallbackButtons.REFRESH_RATES))
         
         # Обработчики мастера
-        self.tg.cbq_handler(lot_wizard.handle_currency_selection, lambda c: c.data and c.data.startswith("wizard_currency:"))
+        def currency_callback_handler(call):
+            logger.info(f"{LOGGER_PREFIX} Вызван обработчик выбора валюты для: {call.data}")
+            return lot_wizard.handle_currency_selection(call, self.bot)
+        
+        self.tg.cbq_handler(currency_callback_handler, lambda c: c.data and c.data.startswith("wizard_currency:"))
+        logger.info(f"{LOGGER_PREFIX} Обработчик wizard_currency зарегистрирован")
         
         # Обработчик сообщений
         self.tg.msg_handler(self.handle_message)

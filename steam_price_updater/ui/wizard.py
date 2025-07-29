@@ -246,23 +246,39 @@ class LotWizard:
     def handle_currency_selection(self, call: telebot.types.CallbackQuery, bot) -> None:
         """Обрабатывает выбор валюты в мастере"""
         try:
+            logger.info(f"{LOGGER_PREFIX} Обработка выбора валюты: call.data = {call.data}")
+            
             if not call.data:
+                logger.error(f"{LOGGER_PREFIX} Отсутствуют данные callback")
                 bot.answer_callback_query(call.id, "❌ Ошибка данных")
                 return
             
-            currency = call.data.split(':')[1]
+            # Парсим валюту из callback данных
+            callback_parts = call.data.split(':')
+            if len(callback_parts) < 2:
+                logger.error(f"{LOGGER_PREFIX} Неверный формат callback данных: {call.data}")
+                bot.answer_callback_query(call.id, "❌ Ошибка формата данных")
+                return
+                
+            currency = callback_parts[1]
             user_key = self.get_user_key(call)
             
+            logger.info(f"{LOGGER_PREFIX} Пользователь {user_key} выбрал валюту: {currency}")
+            
             if user_key not in self.wizard_states:
+                logger.warning(f"{LOGGER_PREFIX} Состояние мастера не найдено для пользователя {user_key}")
                 bot.answer_callback_query(call.id, "❌ Сессия истекла")
                 return
             
             state_data = self.wizard_states[user_key]
+            logger.debug(f"{LOGGER_PREFIX} Текущее состояние: {state_data}")
+            
             lot_id = state_data.get("lot_id")
             steam_id = state_data.get("steam_id")
             min_price = state_data.get("min_price")
             
-            if not all([lot_id, steam_id, min_price]):
+            if not all([lot_id, steam_id, min_price is not None]):
+                logger.error(f"{LOGGER_PREFIX} Отсутствуют необходимые данные: lot_id={lot_id}, steam_id={steam_id}, min_price={min_price}")
                 bot.answer_callback_query(call.id, "❌ Ошибка данных")
                 return
             
@@ -275,6 +291,8 @@ class LotWizard:
                 "min_price": min_price
             }
             self.save_wizard_states()
+            
+            logger.info(f"{LOGGER_PREFIX} Состояние мастера обновлено на шаг max_price")
             
             text = "🧙‍♂️ <b>Мастер добавления лота</b>\n\n"
             text += "📋 <b>Шаг 4 из 4: Максимальная цена</b>\n\n"
@@ -291,9 +309,14 @@ class LotWizard:
                                   reply_markup=keyboard, parse_mode="HTML")
             bot.answer_callback_query(call.id, f"✅ Валюта: {currency}")
             
+            logger.info(f"{LOGGER_PREFIX} Сообщение о выборе валюты отправлено успешно")
+            
         except Exception as e:
-            logger.error(f"{LOGGER_PREFIX} Ошибка выбора валюты в мастере: {e}")
-            bot.answer_callback_query(call.id, "❌ Ошибка")
+            logger.error(f"{LOGGER_PREFIX} Ошибка выбора валюты в мастере: {e}", exc_info=True)
+            try:
+                bot.answer_callback_query(call.id, "❌ Ошибка")
+            except:
+                pass
 
 # Глобальный экземпляр мастера
 lot_wizard = LotWizard()
