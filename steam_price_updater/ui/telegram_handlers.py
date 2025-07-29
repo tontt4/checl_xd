@@ -20,6 +20,8 @@ from .wizard import lot_wizard
 
 if TYPE_CHECKING:
     from tg_bot import CBT
+else:
+    from tg_bot import CBT
 
 logger = logging.getLogger("FPC.steam_price_updater")
 
@@ -48,8 +50,6 @@ class TelegramHandlers:
     
     def _register_handlers(self) -> None:
         """Регистрирует все обработчики"""
-        from tg_bot import CBT
-        
         # Основные обработчики
         self.tg.cbq_handler(self.open_settings, lambda c: c.data and c.data.startswith(f"{CBT.PLUGIN_SETTINGS}:{UUID}"))
         self.tg.cbq_handler(self.show_settings, lambda c: c.data and c.data.startswith(CallbackButtons.SHOW_SETTINGS))
@@ -98,7 +98,7 @@ class TelegramHandlers:
             
             keyboard.row(
                 B("❓ Помощь", url="https://t.me/humblegodq"),
-                B("◀ Назад", callback_data=f"EDIT_PLUGIN:{UUID}:0")
+                B("◀ Назад", callback_data=f"{CBT.EDIT_PLUGIN}:{UUID}:0")
             )
             
             # Статистика
@@ -164,7 +164,7 @@ class TelegramHandlers:
                 B("💱 Валюта", callback_data=f"{CallbackButtons.CHANGE_CURRENCY}:switch"),
                 B("🔄 Курсы валют", callback_data=f"{CallbackButtons.REFRESH_RATES}:")
             )
-            keyboard.add(B("◀ Назад", callback_data=f"PLUGIN_SETTINGS:{UUID}:0"))
+            keyboard.add(B("◀ Назад", callback_data=f"{CBT.PLUGIN_SETTINGS}:{UUID}:0"))
             
             self.bot.edit_message_text(text, call.message.chat.id, call.message.id,
                                       reply_markup=keyboard, parse_mode="HTML")
@@ -235,7 +235,7 @@ class TelegramHandlers:
                 B("➕ Добавить лот", callback_data=f"{CallbackButtons.TEXT_CHANGE_LOT}:0"),
                 B("🔄 Обновить сейчас", callback_data=f"{CallbackButtons.UPDATE_NOW}:")
             )
-            keyboard.add(B("◀ Главное меню", callback_data=f"PLUGIN_SETTINGS:{UUID}:0"))
+            keyboard.add(B("◀ Главное меню", callback_data=f"{CBT.PLUGIN_SETTINGS}:{UUID}:0"))
             
             self.bot.edit_message_text(text, call.message.chat.id, call.message.id,
                                       reply_markup=keyboard, parse_mode="HTML")
@@ -510,7 +510,7 @@ class TelegramHandlers:
             text += f"\n🔄 Обработчик: {'работает' if updater_status['running'] else 'остановлен'}\n"
             
             keyboard = K()
-            keyboard.add(B("◀ Назад", callback_data=f"PLUGIN_SETTINGS:{UUID}:0"))
+            keyboard.add(B("◀ Назад", callback_data=f"{CBT.PLUGIN_SETTINGS}:{UUID}:0"))
             
             self.bot.edit_message_text(text, call.message.chat.id, call.message.id,
                                       reply_markup=keyboard, parse_mode="HTML")
